@@ -1,0 +1,20 @@
+
+name: Pipeline CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo do repositorio
+        uses: actions/checkout@v4
+
+      - name: Testar conexao com DNS do Google
+        run: ping -c 4 8.8.8.8
+
+      - name: Exibir mensagem
+        run: echo "Nos da pipeline executados com sucesso!"
