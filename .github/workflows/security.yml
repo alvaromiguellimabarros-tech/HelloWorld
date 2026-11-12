@@ -1,0 +1,43 @@
+
+name: Security Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  SAST:
+    name: SAST - Analise estatica
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Executar analise de seguranca
+        run: |
+          pip install semgrep
+          semgrep scan --config p/security-audit --error .
+
+  DAST:
+    name: DAST - Analise dinamica
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Iniciar aplicacao
+        run: |
+          python3 -m http.server 8080 &
+          sleep 5
+          curl --fail http://localhost:8080/HelloWorld.html
+
+      - name: Executar OWASP ZAP
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: 'http://localhost:8080/HelloWorld.html'
+          fail_action: true
+          allow_issue_writing: false
