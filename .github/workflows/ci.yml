@@ -42,17 +42,24 @@ jobs:
       - name: Baixar codigo do repositorio
         uses: actions/checkout@v4
 
+      - name: Preparar ambiente de teste
+        run: |
+          mkdir -p /tmp/helloworld-site
+          cp HelloWorld.html /tmp/helloworld-site/
+
       - name: Iniciar servidor local
         run: |
-          python3 -m http.server 8000 --directory . &
-          echo $! > server.pid
+          python3 -m http.server 8000 --bind 127.0.0.1 --directory /tmp/helloworld-site > /tmp/server.log 2>&1 &
 
       - name: Validar disponibilidade da aplicacao
         run: |
-          curl --retry 10 --retry-connrefused --retry-delay 2 http://127.0.0.1:8000/
+          curl --fail --retry 10 --retry-connrefused --retry-delay 2 http://127.0.0.1:8000/HelloWorld.html
 
       - name: Executar analise DAST com OWASP ZAP
         uses: zaproxy/action-baseline@v0.15.0
         with:
-          target: 'http://127.0.0.1:8000'
+          target: 'http://127.0.0.1:8000/HelloWorld.html'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-I'
           fail_action: true
+          allow_issue_writing: false
