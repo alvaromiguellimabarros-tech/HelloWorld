@@ -1,5 +1,5 @@
 
-name: Pipeline CI
+name: Secure Pipeline CI/CD
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 
 jobs:
   verificar:
+    name: CI - Verificacao
     runs-on: ubuntu-latest
 
     steps:
@@ -18,3 +19,40 @@ jobs:
 
       - name: Exibir mensagem
         run: echo "Nos da pipeline executados com sucesso!"
+
+  sast:
+    name: SAST - Analise Estatica
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo do repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Semgrep
+        run: python3 -m pip install semgrep
+
+      - name: Executar analise de seguranca
+        run: semgrep scan --config p/security-audit --error .
+
+  dast:
+    name: DAST - Analise Dinamica
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo do repositorio
+        uses: actions/checkout@v4
+
+      - name: Iniciar servidor local
+        run: |
+          python3 -m http.server 8000 --directory . &
+          echo $! > server.pid
+
+      - name: Validar disponibilidade da aplicacao
+        run: |
+          curl --retry 10 --retry-connrefused --retry-delay 2 http://127.0.0.1:8000/
+
+      - name: Executar analise DAST com OWASP ZAP
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: 'http://127.0.0.1:8000'
+          fail_action: true
